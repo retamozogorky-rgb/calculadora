@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#a51c30">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Calculadora de Eclosión</title>
+<style>
+/* Dirección: rojo y blanco institucional. Encabezado rojo con logo a la izquierda y carrera a la derecha,
+   lista de parámetros en tarjetas blancas, resultado fijo abajo. Solo tema claro. */
+:root{
+  --bg:#f6f4f4;
+  --surface:#ffffff;
+  --ink:#241818;
+  --muted:#6b5b5b;
+  --line:#e6dcdc;
+  --brand:#a51c30;
+  --brand-dark:#7d1424;
+  --brand-ink:#ffffff;
+  --accent:#a51c30;
+  --good:#2f7d4f;
+  --warn:#b7791f;
+  --bad:#b2392f;
+  --chip:#f6e7e9;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.app{max-width:560px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+
+header{
+  background:var(--brand);color:var(--brand-ink);
+  padding:calc(12px + env(safe-area-inset-top)) 16px 16px;
+  border-bottom:4px solid var(--brand-dark);
+}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;min-height:64px}
+.logo img[hidden]{display:none}
+.logo img{display:block;height:64px;width:auto}
+.logo .txt{font-weight:800;letter-spacing:1px;color:#fff;font-size:1.2rem}
+.carrera{text-align:right;line-height:1.15}
+.carrera small{display:block;font-size:.7rem;letter-spacing:.8px;text-transform:uppercase;opacity:.85}
+.carrera b{display:block;font-size:1rem}
+header h1{margin:14px 0 0;font-size:1.3rem;letter-spacing:.2px;text-wrap:balance}
+header p{margin:4px 0 0;font-size:.88rem;opacity:.88}
+
+main{flex:1;padding:14px 16px 24px;display:flex;flex-direction:column;gap:10px}
+.hint{margin:2px 2px 4px;color:var(--muted);font-size:.9rem}
+
+.row{
+  display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;
+  width:100%;text-align:left;background:var(--surface);
+  border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+}
+.row:active{background:var(--chip)}
+.num{
+  width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:var(--chip);color:var(--brand);font-weight:700;font-variant-numeric:tabular-nums;
+}
+.row.done .num{background:var(--brand);color:#fff}
+.row h2{margin:0;font-size:1rem}
+.row .sel{margin:2px 0 0;font-size:.88rem;color:var(--muted);overflow-wrap:anywhere}
+.row.done .sel{color:var(--ink)}
+.row .tag{font-size:.82rem;font-variant-numeric:tabular-nums;color:var(--muted);text-align:right;white-space:nowrap}
+.row .tag b{display:block;font-size:1rem;color:var(--ink)}
+.chev{font-size:1.3rem;color:var(--muted);margin-left:4px}
+
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn{
+  border:1px solid var(--line);background:var(--surface);border-radius:10px;
+  padding:10px 14px;font-weight:600;font-size:.92rem;
+}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+
+details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 14px}
+summary{padding:12px 0;font-weight:600;cursor:pointer}
+.tablewrap{overflow-x:auto;margin:0 -4px 10px}
+table{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{color:var(--muted);font-weight:600}
+.note{font-size:.82rem;color:var(--muted);margin:0 0 12px}
+
+/* Resultado fijo */
+.result{
+  position:sticky;bottom:0;z-index:5;
+  background:var(--brand);color:var(--brand-ink);
+  padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+  box-shadow:0 -6px 18px rgba(0,0,0,.18);
+}
+.result-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.big{font-size:2.5rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;min-width:5.4ch}
+.big small{font-size:1.2rem;font-weight:700}
+.meter{height:10px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:#fff;border-radius:6px;transition:width .35s}
+.result .lbl{font-size:.8rem;opacity:.85;margin:0 0 6px}
+.result .state{display:inline-block;font-weight:700;font-size:.9rem;margin:8px 0 0;padding:3px 10px;border-radius:999px;background:#fff;color:var(--muted)}
+.result .state.good{color:var(--good)}.result .state.warn{color:var(--warn)}.result .state.bad{color:var(--bad)}
+
+/* Pantalla de opciones */
+.sheet{
+  position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;
+  display:none;
+}
+.sheet.open{display:block}
+.sheet-in{max-width:560px;margin:0 auto}
+.sheet-top{
+  position:sticky;top:0;background:var(--brand);color:var(--brand-ink);border-bottom:4px solid var(--brand-dark);
+  display:flex;align-items:center;gap:10px;
+  padding:calc(10px + env(safe-area-inset-top)) 12px 12px;z-index:2;
+}
+.back{background:transparent;border:0;font-size:1.6rem;line-height:1;padding:4px 10px;color:inherit}
+.sheet-top h2{margin:0;font-size:1.1rem}
+.sheet-top p{margin:0;font-size:.8rem;opacity:.8}
+.opts{padding:14px 16px 40px;display:flex;flex-direction:column;gap:8px}
+.group{margin:10px 2px 0;font-size:.82rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);
+  display:flex;justify-content:space-between;gap:8px}
+.opt{
+  display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:center;text-align:left;width:100%;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+}
+.opt .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line)}
+.opt.on{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+.opt.on .dot{border-color:var(--brand);background:radial-gradient(var(--brand) 0 45%,transparent 50%)}
+.opt b{display:block;font-size:.98rem}
+.opt span.d{display:block;font-size:.82rem;color:var(--muted);margin-top:2px}
+.opt .pc{font-weight:700;font-variant-numeric:tabular-nums;font-size:.95rem;text-align:right}
+.opt .pc em{display:block;font-style:normal;font-size:.72rem;font-weight:600;color:var(--warn)}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+/* Presentación de carga: fondo rojo institucional, logo y letras en blanco */
+.splash{
+  position:fixed;inset:0;z-index:50;background:var(--brand);color:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  padding:24px 24px calc(24px + env(safe-area-inset-bottom));text-align:center;
+  transition:opacity .5s ease,visibility .5s ease;
+}
+.splash.out{opacity:0;visibility:hidden}
+.splash img{width:min(44vw,180px);height:auto;display:block;animation:rise .8s ease both}
+.splash .curso{
+  margin:6px 0 0;font-size:clamp(1.25rem,6vw,1.7rem);font-weight:800;letter-spacing:.06em;line-height:1.15;
+  color:#fff;animation:rise .8s .25s ease both;text-wrap:balance;
+}
+.splash .regla{width:64px;height:3px;background:#fff;border-radius:2px;animation:rise .8s .35s ease both}
+.splash .carrera-s{margin:0;font-size:1rem;font-weight:600;letter-spacing:.04em;color:#fff;animation:rise .8s .45s ease both}
+.splash .load{width:min(56vw,220px);height:4px;border-radius:4px;background:rgba(255,255,255,.28);overflow:hidden;margin-top:10px;animation:rise .8s .6s ease both}
+.splash .load i{display:block;height:100%;width:0;background:#fff;animation:fill 2.4s .3s ease-out forwards}
+.splash .autor{position:absolute;right:20px;bottom:calc(16px + env(safe-area-inset-bottom));font-weight:800;letter-spacing:.14em;color:#fff;font-size:1.05rem}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fill{to{width:100%}}
+@media (prefers-reduced-motion:reduce){.splash img,.splash .curso,.splash .regla,.splash .carrera-s,.splash .load{animation:none}.splash .load i{animation:none;width:100%}.splash{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="top">
+      <div class="logo" id="logoBox">
+        <img id="logoImg" src="icons/logo-usmp.png" alt="Logo de la Universidad de San Martín de Porres">
+        <span class="txt" id="logoTxt" hidden>USMP</span>
+      </div>
+      <div class="carrera"><small>Carrera</small><b>Ingeniería Industrial</b></div>
+    </div>
+    <h1>Calculadora de eclosión</h1>
+    <p>Incubadora de 20 huevos · elige una opción en cada parámetro</p>
+  </header>
+
+  <main>
+    <p class="hint">Toca cada parámetro y elige la opción que usarás. El porcentaje de eclosión aparece abajo.</p>
+    <div id="rows" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="tools">
+      <button class="btn primary" id="btnBest" type="button">Aplicar mejor combinación</button>
+      <button class="btn" id="btnReset" type="button">Reiniciar</button>
+    </div>
+    <details id="det">
+      <summary>Ver cómo se calculó</summary>
+      <div id="detBody"></div>
+    </details>
+    <details>
+      <summary>Acerca del cálculo</summary>
+      <p class="note">Eclosión = 90 % × (eclosión de la opción ÷ mejor eclosión de su categoría), multiplicado para los cinco parámetros. El 90 % es el máximo del modelo de temperatura del proyecto, con una incubadora bien manejada.</p>
+      <p class="note">Origen de las tasas: Materiales (Markov por categoría), Temperatura y Humedad (simulación Monte Carlo), Ventilación y Distribución (promedio Laplace de la decisión bajo incertidumbre).</p>
+      <p class="note">Las tasas marcadas como «estimado» (sensores DS18B20 y NTC 10k) no se simularon en el Excel. Se calcularon con el mismo modelo a partir de su precisión.</p>
+    </details>
+  </main>
+
+  <div class="result" aria-live="polite">
+    <div class="result-in">
+      <div class="big" id="big">—</div>
+      <div>
+        <p class="lbl" id="lbl">Eclosión estimada</p>
+        <div class="meter"><i id="bar"></i></div>
+        <p class="state" id="state">Faltan 5 parámetros</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-in">
+    <div class="sheet-top">
+      <button class="back" id="back" type="button" aria-label="Volver">‹</button>
+      <div><h2 id="sheetTitle"></h2><p id="sheetSub"></p></div>
+    </div>
+    <div class="opts" id="opts"></div>
+  </div>
+</div>
+
+<div class="splash" id="splash" role="status" aria-label="Cargando la calculadora">
+  <img id="splashLogo" src="icons/logo-usmp.png" alt="Universidad de San Martín de Porres">
+  <p class="curso">INVESTIGACIÓN OPERATIVA II</p>
+  <div class="regla"></div>
+  <p class="carrera-s">Ingeniería Industrial</p>
+  <div class="load"><i></i></div>
+  <span class="autor">MIDAS RT</span>
+</div>
+
+<div class="app">
+  <header>
+    <div class="top">
+      <div class="logo" id="logoBox">
+        <img id="logoImg" src="icons/logo-usmp.png" alt="Logo de la Universidad de San Martín de Porres">
+        <span class="txt" id="logoTxt" hidden>USMP</span>
+      </div>
+      <div class="carrera"><small>Carrera</small><b>Ingeniería Industrial</b></div>
+    </div>
+    <h1>Calculadora de eclosión</h1>
+    <p>Incubadora de 20 huevos · elige una opción en cada parámetro</p>
+  </header>
+
+  <main>
+    <p class="hint">Toca cada parámetro y elige la opción que usarás. El porcentaje de eclosión aparece abajo.</p>
+    <div id="rows" style="display:flex;flex-direction:column;gap:10px"></div>
+    <div class="tools">
+      <button class="btn primary" id="btnBest" type="button">Aplicar mejor combinación</button>
+      <button class="btn" id="btnReset" type="button">Reiniciar</button>
+    </div>
+    <details id="det">
+      <summary>Ver cómo se calculó</summary>
+      <div id="detBody"></div>
+    </details>
+    <details>
+      <summary>Acerca del cálculo</summary>
+      <p class="note">Eclosión = 90 % × (eclosión de la opción ÷ mejor eclosión de su categoría), multiplicado para los cinco parámetros. El 90 % es el máximo del modelo de temperatura del proyecto, con una incubadora bien manejada.</p>
+      <p class="note">Origen de las tasas: Materiales (Markov por categoría), Temperatura y Humedad (simulación Monte Carlo), Ventilación y Distribución (promedio Laplace de la decisión bajo incertidumbre).</p>
+      <p class="note">Las tasas marcadas como «estimado» (sensores DS18B20 y NTC 10k) no se simularon en el Excel. Se calcularon con el mismo modelo a partir de su precisión.</p>
+    </details>
+  </main>
+
+  <div class="result" aria-live="polite">
+    <div class="result-in">
+      <div class="big" id="big">—</div>
+      <div>
+        <p class="lbl" id="lbl">Eclosión estimada</p>
+        <div class="meter"><i id="bar"></i></div>
+        <p class="state" id="state">Faltan 5 parámetros</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet-in">
+    <div class="sheet-top">
+      <button class="back" id="back" type="button" aria-label="Volver">‹</button>
+      <div><h2 id="sheetTitle"></h2><p id="sheetSub"></p></div>
+    </div>
+    <div class="opts" id="opts"></div>
+  </div>
+</div>
+
+<script id="datos">
+/* ===== Datos y cálculo (derivados del Excel PROYECTO_INCUBADORA) ===== */
+var BASE = 90.0;
+var CATS = [
+  { id:'material', n:1, titulo:'Material', sub:'Estructura de la incubadora',
+    grupos:[
+      { nombre:'Poliestireno expandido (EPS)', tasa:88.0, items:[
+        { id:'eps30', nombre:'EPS alta densidad (30 kg/m³)', detalle:'Espesor 50 mm · U 0.64 W/m²·K · S/ 25 por m²' },
+        { id:'eps15', nombre:'EPS estándar (15 kg/m³)', detalle:'Espesor 50 mm · U 0.76 W/m²·K · S/ 17 por m²' } ] },
+      { nombre:'Plástico', tasa:92.0, items:[
+        { id:'pp', nombre:'Polipropileno alveolar (Coroplast)', detalle:'Espesor 10 mm · U 6.50 W/m²·K · S/ 32 por m²' },
+        { id:'abs', nombre:'ABS', detalle:'Espesor 5 mm · U 34.00 W/m²·K · S/ 45 por m²' },
+        { id:'hdpe', nombre:'Polietileno alta densidad (HDPE)', detalle:'Espesor 8 mm · U 52.50 W/m²·K · S/ 36 por m²' } ] },
+      { nombre:'Madera', tasa:76.0, items:[
+        { id:'mdf', nombre:'MDF con sellado epóxico', detalle:'Espesor 15 mm · U 8.67 W/m²·K · S/ 34 por m²' },
+        { id:'triplay', nombre:'Contrachapado fenólico (triplay marino)', detalle:'Espesor 15 mm · U 8.00 W/m²·K · S/ 53 por m²' },
+        { id:'pino', nombre:'Pino macizo con barniz ecológico', detalle:'Espesor 20 mm · U 6.50 W/m²·K · S/ 68 por m²' } ] }
+    ] },
+  { id:'temperatura', n:2, titulo:'Temperatura', sub:'Sensor de temperatura',
+    items:[
+      { id:'dht11', nombre:'DHT11', detalle:'Digital · ±2.0 °C · S/ 12', tasa:74.64 },
+      { id:'dht22', nombre:'DHT22 / AM2302', detalle:'Digital · ±0.5 °C · S/ 25', tasa:88.22 },
+      { id:'lm35', nombre:'LM35', detalle:'Analógico · ±0.5 °C · S/ 12', tasa:88.42 },
+      { id:'ds18', nombre:'DS18B20', detalle:'1-Wire · ±0.5 °C · S/ 18', tasa:88.22, est:true },
+      { id:'ntc', nombre:'NTC 10k', detalle:'Termistor · ±0.5 a ±1.0 °C · S/ 10', tasa:87.0, est:true }
+    ] },
+  { id:'humedad', n:3, titulo:'Humedad', sub:'Sistema de humidificación',
+    items:[
+      { id:'bandejas', nombre:'Evaporación por bandejas de agua', detalle:'Variabilidad alta (5–10 %HR) · S/ 15', tasa:82.5 },
+      { id:'ultra', nombre:'Humidificación ultrasónica', detalle:'Variabilidad baja (1–3 %HR) · S/ 35', tasa:87.4 },
+      { id:'nebu', nombre:'Nebulización o pulverización', detalle:'Variabilidad media (2–5 %HR) · S/ 28', tasa:85.9 },
+      { id:'vapor', nombre:'Vapor de agua (steam)', detalle:'Variabilidad muy baja (<2 %HR) · S/ 55', tasa:88.4 }
+    ] },
+  { id:'distribucion', n:4, titulo:'Distribución', sub:'Distribución interna de los huevos',
+    items:[
+      { id:'d1', nombre:'Una bandeja', detalle:'Los 20 huevos en un solo nivel', tasa:63.33 },
+      { id:'d2', nombre:'Dos bandejas uniformes', detalle:'10 huevos por bandeja, separación uniforme', tasa:67.33 },
+      { id:'d3', nombre:'Cuatro bandejas', detalle:'5 huevos por bandeja, en distintos niveles', tasa:66.67 },
+      { id:'d4', nombre:'Dos bandejas escalonadas', detalle:'10 huevos por bandeja, favorece la circulación del aire', tasa:68.33 }
+    ] },
+  { id:'ventilacion', n:5, titulo:'Ventilación', sub:'Sistema de ventilación',
+    items:[
+      { id:'v1', nombre:'Ventilación natural', detalle:'Aberturas, sin regulación', tasa:60 },
+      { id:'v2', nombre:'Forzada constante', detalle:'Ventilador axial DC', tasa:74 },
+      { id:'v3', nombre:'Forzada regulable (PWM)', detalle:'Ventilador DC con control PWM', tasa:83 },
+      { id:'v4', nombre:'Automatizada', detalle:'Ventilador DC + sensor de CO₂ + Arduino', tasa:87 }
+    ] }
+];
+
+function opciones(cat){
+  var out = [];
+  if (cat.grupos){
+    cat.grupos.forEach(function(g){
+      g.items.forEach(function(it){
+        out.push({ id:it.id, nombre:it.nombre, detalle:it.detalle, tasa:g.tasa, grupo:g.nombre });
+      });
+    });
+  } else {
+    cat.items.forEach(function(it){ out.push(it); });
+  }
+  return out;
+}
+function maxTasa(cat){
+  return Math.max.apply(null, opciones(cat).map(function(o){ return o.tasa; }));
+}
+function buscar(cat, id){
+  var l = opciones(cat);
+  for (var i = 0; i < l.length; i++){ if (l[i].id === id) return l[i]; }
+  return null;
+}
+/* sel = { material:'eps30', temperatura:'lm35', ... } */
+function calcular(sel){
+  var total = BASE, partes = [], faltan = 0;
+  CATS.forEach(function(cat){
+    var o = sel[cat.id] ? buscar(cat, sel[cat.id]) : null;
+    if (!o){ faltan++; partes.push({ cat:cat, op:null }); return; }
+    var mx = maxTasa(cat), f = o.tasa / mx;
+    total = total * f;
+    partes.push({ cat:cat, op:o, max:mx, factor:f, acumulado:total });
+  });
+  return { completo:faltan === 0, faltan:faltan, total:total, partes:partes };
+}
+function mejor(){
+  var s = {};
+  CATS.forEach(function(cat){
+    var best = null;
+    opciones(cat).forEach(function(o){ if (!best || o.tasa > best.tasa) best = o; });
+    s[cat.id] = best.id;
+  });
+  return s;
+}
+</script>
+
+<script>
+(function(){
+  var KEY = 'incubadora-seleccion-v1';
+  var sel = {};
+  try { sel = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch(e){ sel = {}; }
+  CATS.forEach(function(c){ if (sel[c.id] && !buscar(c, sel[c.id])) delete sel[c.id]; });
+
+  function guardar(){ try { localStorage.setItem(KEY, JSON.stringify(sel)); } catch(e){} }
+  function fmt(x){ return x.toFixed(1); }
+  function $(id){ return document.getElementById(id); }
+  function el(tag, cls, html){ var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function pintar(){
+    var r = calcular(sel);
+    var rows = $('rows'); rows.innerHTML = '';
+    r.partes.forEach(function(p){
+      var b = el('button', 'row' + (p.op ? ' done' : ''));
+      b.type = 'button';
+      b.setAttribute('data-cat', p.cat.id);
+      var nombre = p.op ? esc(p.op.nombre) : 'Toca para elegir';
+      var tag = p.op ? '<b>' + fmt(p.op.tasa) + ' %</b>' + (p.op.est ? 'estimado' : 'eclosión') : '';
+      b.innerHTML = '<span class="num">' + p.cat.n + '</span>' +
+        '<span><h2>' + esc(p.cat.titulo) + '</h2><p class="sel">' + nombre + '</p></span>' +
+        '<span class="tag">' + tag + '<span class="chev" aria-hidden="true">›</span></span>';
+      b.addEventListener('click', function(){ location.hash = 'elegir-' + p.cat.id; });
+      rows.appendChild(b);
+    });
+
+    var big = $('big'), bar = $('bar'), st = $('state'), lbl = $('lbl');
+    if (r.completo){
+      big.innerHTML = fmt(r.total) + '<small> %</small>';
+      bar.style.width = Math.max(0, Math.min(100, r.total)) + '%';
+      var cls = r.total >= 85 ? 'good' : (r.total >= 70 ? 'warn' : 'bad');
+      var txt = r.total >= 85 ? 'Eclosión alta' : (r.total >= 70 ? 'Eclosión media' : 'Eclosión baja');
+      st.className = 'state ' + cls; st.textContent = txt;
+      lbl.textContent = 'Eclosión estimada de la combinación';
+    } else {
+      big.textContent = '—';
+      bar.style.width = '0';
+      st.className = 'state';
+      st.textContent = r.faltan === 1 ? 'Falta 1 parámetro' : 'Faltan ' + r.faltan + ' parámetros';
+      lbl.textContent = 'Eclosión estimada';
+    }
+    detalle(r);
+  }
+
+  function detalle(r){
+    var h = '<div class="tablewrap"><table><thead><tr><th>Parámetro</th><th>Opción</th><th>Máx.</th><th>Factor</th><th>Acum.</th></tr></thead><tbody>';
+    h += '<tr><td>Base</td><td>—</td><td>—</td><td>—</td><td>' + fmt(BASE) + ' %</td></tr>';
+    r.partes.forEach(function(p){
+      if (p.op){
+        h += '<tr><td>' + esc(p.cat.titulo) + '</td><td>' + fmt(p.op.tasa) + ' %</td><td>' + fmt(p.max) + ' %</td><td>' + p.factor.toFixed(3) + '</td><td>' + fmt(p.acumulado) + ' %</td></tr>';
+      } else {
+        h += '<tr><td>' + esc(p.cat.titulo) + '</td><td colspan="4">sin elegir</td></tr>';
+      }
+    });
+    h += '</tbody></table></div>';
+    $('detBody').innerHTML = h;
+  }
+
+  function abrir(catId){
+    var cat = null;
+    CATS.forEach(function(c){ if (c.id === catId) cat = c; });
+    if (!cat){ $('sheet').classList.remove('open'); return; }
+    $('sheetTitle').textContent = cat.n + '. ' + cat.titulo;
+    $('sheetSub').textContent = cat.sub;
+    var box = $('opts'); box.innerHTML = '';
+    function opt(o){
+      var b = el('button', 'opt' + (sel[cat.id] === o.id ? ' on' : ''));
+      b.type = 'button';
+      b.innerHTML = '<span class="dot"></span><span><b>' + esc(o.nombre) + '</b><span class="d">' + esc(o.detalle) + '</span></span>' +
+        '<span class="pc">' + fmt(o.tasa) + ' %' + (o.est ? '<em>estimado</em>' : '') + '</span>';
+      b.addEventListener('click', function(){
+        sel[cat.id] = o.id; guardar(); pintar();
+        location.hash = '';
+      });
+      box.appendChild(b);
+    }
+    if (cat.grupos){
+      cat.grupos.forEach(function(g){
+        box.appendChild(el('div', 'group', '<span>' + esc(g.nombre) + '</span><span>' + fmt(g.tasa) + ' %</span>'));
+        g.items.forEach(function(it){ opt({ id:it.id, nombre:it.nombre, detalle:it.detalle, tasa:g.tasa }); });
+      });
+    } else {
+      cat.items.forEach(opt);
+    }
+    $('sheet').classList.add('open');
+    $('sheet').scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+  }
+  function cerrar(){
+    $('sheet').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function ruta(){
+    var h = (location.hash || '').replace('#', '');
+    if (h.indexOf('elegir-') === 0) abrir(h.slice(7)); else cerrar();
+  }
+
+  $('back').addEventListener('click', function(){ location.hash = ''; });
+  $('btnBest').addEventListener('click', function(){ sel = mejor(); guardar(); pintar(); });
+  $('btnReset').addEventListener('click', function(){ sel = {}; guardar(); pintar(); });
+  window.addEventListener('hashchange', ruta);
+
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
+    try { navigator.serviceWorker.register('sw.js').catch(function(){}); } catch(e){}
+  }
+  var li = $('logoImg');
+  function sinLogo(){ li.hidden = true; $('logoTxt').hidden = false; }
+  li.addEventListener('error', sinLogo);
+  if (li.complete && li.naturalWidth === 0) sinLogo();
+  var sp = $('splash');
+  function cerrarSplash(){
+    if (!sp || sp.className.indexOf('out') > -1) return;
+    sp.className += ' out';
+    setTimeout(function(){ if (sp.parentNode) sp.parentNode.removeChild(sp); }, 500);
+  }
+  if (sp){ sp.addEventListener('click', cerrarSplash); setTimeout(cerrarSplash, 2900); }
+  pintar();
+  ruta();
+})();
+</script>
+</body>
+</html>
