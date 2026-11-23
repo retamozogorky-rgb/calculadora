@@ -1,6 +1,6 @@
 // Cache para que la app funcione sin internet.
-var CACHE = 'eclosion-v3';
-var ARCHIVOS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/logo-usmp.png'];
+var CACHE = 'eclosion-v4';
+var ARCHIVOS = ['./', './index.html'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ARCHIVOS); }));
